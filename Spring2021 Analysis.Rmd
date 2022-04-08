@@ -39,22 +39,22 @@ colnames(Spring_2021)[3] <- "Courses"
 
 # Check NA values
 summary(is.na(Spring_2021$Courses))
-table(Classes$Courses)
+
 # Create dataset of Course Information
 Classes <- Spring_2021 %>%
   unnest_tokens(Courses,Courses) %>%
   drop_na(`Courses`) %>% # Remove NA values
-  filter(Courses %in% c("math","arts", "esl","computer","social","bridge","science", "ged")) %>%
+  filter(Courses %in% c("math","arts", "esl","computer","social","bridge","science", "ged","citizenship")) %>%
   group_by(`Courses`) %>% # group by courses
   summarise(count = n(),
             percentage = count/(767-5))
-glimpse(Classes)
 
 # Format course name to align with Fall survey
 Classes$Courses <- c("Language Arts", 
                      "Bridge", 
+                     "Citizenship",
                      "Computer Skills",
-                     "ESl",
+                     "ESL",
                      "GED",
                      "Math",
                      "Science",
@@ -62,58 +62,63 @@ Classes$Courses <- c("Language Arts",
 
 # Plot
 ggplot(data = Classes, aes(x = reorder(`Courses`,-`count`), y = `percentage`)) +
-  geom_col(fill = "maroon") +
+  geom_col(fill = "#0065A4") +
   geom_text(aes(label=count), vjust = -0.5, face = "bold")+
   labs(title = "Course Distribution",
        x = "Course Type",
        y = "Percentage") +
   theme_classic() +  
-  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5))
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(size = 8.5))
 ```
-### College
+
+### Class Duration
 ```{r, warning=FALSE}
-# Summarize College Data
-colnames(Fall_2021)[2] <- "College" # Rename
+# Rename
+colnames(Spring_2021)[8] <- "Time" 
+# Check NA values
+summary(is.na(Spring_2021$Time))
 
-College <- Fall_2021 %>%
-  group_by(`College`) %>%
+# Create dataset of Course Information
+Time_Class<- Spring_2021 %>%
+  group_by(`Time`) %>% # group by time of taking courses
   summarise(count = n(),
-            percentage = count/1163) %>%
-  arrange(desc(percentage))
-
-# Simplify the name
-College$`College` <- c("Daley",
-                       "Truman",
-                       "Wright",
-                       "Malcolm X",
-                       "Olive-Harvey",
-                       "Kennedy-King")
+            percentage = count/(767))
 
 # Plot
-ggplot(data = College,aes(x = reorder(`College`,-`count`), y = `percentage`)) +
-  geom_col(fill = "maroon") +
-  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
-  scale_y_continuous(breaks = seq(0,0.4,0.1),
-                     limits = c(0,0.4))+
-  labs(title = "College Distribution",
-       caption = "Q1: What College are you Attending?",
-       x = "College",
+ggplot(data = Time_Class, aes(x = reorder(`Time`,-`count`), y = `percentage`)) +
+  geom_col(fill = "#0065A4") +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold")+
+  labs(title = "Duration of Taking Classes at City Colleges of Chicago",
+       x = "Time",
        y = "Percentage") +
   theme_classic() +  
   theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
-        axis.text = element_text(size = 10, hjust = 0.5),
-        plot.caption = element_text(face = "italic",hjust = 0))
+        axis.text.x = element_text(size = 8.5))
+```
+
+# Whether Classes are helpful to achieve goals
+```{r}
+Spring_2021 <- as.data.frame(rename(Spring_2021, "Goal Achieving"= `Are your classes helping you to work towards your goals?`))
+
+# Summarize responses
+Spring_2021 %>%
+  group_by(`Goal Achieving`) %>%
+  summarise(count = n(),
+            percentage = count/(767))
+
+ggplot(Spring_2021, aes(x =`Goal Achieving`, y = ..prop.., group = 1))+
+  geom_bar(fill = "#0065A4")+
+  labs(title = "Effectiveness of CCC Courses to Help Studnets Achieve Goals",
+       x = "Effectiveness",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5))
 ```
 
 
-# Clean dataset
-FiW_his_por <- FiW_his_por %>%
-  drop_na(Year_ori) %>% # Delete NA Value
-  select(-starts_with("..."), -starts_with("Number"),#Delete irrelevant columns
-         -"FIW Survey Edition*" , -"Total Countries") 
-
-
 # Add formatted value between 2003 to 2006 to original dataset
+```{r}
 q1_FiW_his_por <- rbind(FiW_his_por, d2006, d2005,d2004,d2003) %>% 
   mutate(Year = as.numeric(Year_ori)) %>% 
   # Create a new column to convert values of Year into numeric
