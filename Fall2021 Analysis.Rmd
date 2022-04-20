@@ -5,63 +5,67 @@ output: pdf_document
 ---
 ### Clear Global Environment
 ```{r, include = TRUE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
 rm(list=ls())
 ```
 
 ### Working Directory and Loading Packages
 ```{r, message = FALSE,echo = TRUE}
 # Setting the Working Directory
-setwd("~/Desktop/CCC-IOP/Data/S")
+setwd("~/Desktop/CCC-IOP/Data/CCC-Survey")
 
 # Loading Packages
 library(readxl)
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+# Theme color
+CCC <- "#0065A4"
 ```
 
-## Q2.a
 ### Load ataset
-```{r, warning=FALSE}
-# Read the FiW data 
-Fall_2021<-read_excel("Clean_Fall2021_Student.xlsx", 
-                          sheet = "Raw Data")
+```{r}
+# Read the Fall student survey data 
+Fall_2021<- read_excel("Clean_Fall2021_Student.xlsx", 
+                           sheet = "Raw Data")
+as.matrix(colSums(is.na(Fall_2021)))
 ```
 
 ### User Language
 ```{r, warning=FALSE}
 # Summarize User Language
-ul <- Fall_2021 %>%
+Q0_ul <- Fall_2021 %>%
   group_by(`User Language`) %>%
   summarise(count = n(),
             percentage = count/1163)
 # Plot
-CCC <- rgb(0, 101, 164)
-
-ggplot(data = ul,aes(x = `User Language`, y = `percentage`)) +
-  geom_col(fill = "Dark Blue") +
+ggplot(data = Q0_ul,aes(x = `User Language`, y = `percentage`)) +
+  geom_col(fill = CCC) +
   geom_text(aes(label=count), vjust = -0.5, face = "bold")+
+  scale_y_continuous(breaks = seq(0,0.7,0.1),
+                     limits = c(0,0.7))+
   labs(title = "User language Distribution",
        x = "Language Type",
        y = "Percentage") +
   theme_classic() +  
   theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5))
 ```
-```
+
 ### College
 ```{r, warning=FALSE}
 # Summarize College Data
-colnames(Fall_2021)[2] <- "College" # Rename
+colnames(Fall_2021)[2] <- "college" # Rename
 
-College <- Fall_2021 %>%
-  group_by(`College`) %>%
+Q1_college <- Fall_2021 %>%
+  group_by(`college`) %>%
   summarise(count = n(),
             percentage = count/1163) %>%
   arrange(desc(percentage))
 
 # Simplify the name
-College$`College` <- c("Daley",
+Q1_college$`college` <- c("Daley",
                        "Truman",
                        "Wright",
                        "Malcolm X",
@@ -69,8 +73,8 @@ College$`College` <- c("Daley",
                        "Kennedy-King")
 
 # Plot
-ggplot(data = College,aes(x = reorder(`College`,-`count`), y = `percentage`)) +
-  geom_col(fill = "maroon") +
+ggplot(data = Q1_college,aes(x = reorder(`college`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
   geom_text(aes(label=count), vjust = -0.5, face = "bold") +
   scale_y_continuous(breaks = seq(0,0.4,0.1),
                      limits = c(0,0.4))+
@@ -84,529 +88,422 @@ ggplot(data = College,aes(x = reorder(`College`,-`count`), y = `percentage`)) +
         plot.caption = element_text(face = "italic",hjust = 0))
 ```
 
+### Courses
+```{r, warning=FALSE}
+# Summarize College Data
+colnames(Fall_2021)[3] <- "courses" # Rename
 
-# Clean dataset
-FiW_his_por <- FiW_his_por %>%
-  drop_na(Year_ori) %>% # Delete NA Value
-  select(-starts_with("..."), -starts_with("Number"),#Delete irrelevant columns
-         -"FIW Survey Edition*" , -"Total Countries") 
+Q2_courses <- Fall_2021 %>%
+  drop_na(`courses`) %>%
+  group_by(`courses`) %>%
+  summarise(count = n(),
+            percentage = count/1162) %>%
+  arrange(desc(percentage))
+# Rename
+Q2_courses$`courses` <- c("ESL",
+                       "Math",
+                       "Language Arts",
+                       "Bridge",
+                       "Computer",
+                       "Test Skills",
+                       "Citizenship",
+                       "Career")
 
-
-# Add formatted value between 2003 to 2006 to original dataset
-q1_FiW_his_por <- rbind(FiW_his_por, d2006, d2005,d2004,d2003) %>% 
-  mutate(Year = as.numeric(Year_ori)) %>% 
-  # Create a new column to convert values of Year into numeric
-  select(-"Year_ori") %>% # Delete the column with Year information in character
-  filter(Year >= 1995 & Year <= 2020) %>% # Only keep values from 1995 to 2020
-  arrange(Year) %>% # Arrange the year column in ascending order
-  select(Year,everything()) # Move the year column to the first in the dataframe
-
-# Summarize the distribution in 1995 and 2020
-q1_FiW_his_por %>%
-  filter(Year == 1995 | Year == 2020) %>% # Only keeps YEar 1995 and 2020
-  group_by(Year) %>% # Group based on year
-  summarize(Free = sum(`% of F Countries`), # summarize percentage of each type 
-            Partially_Free = sum(`% of PF Countries`),
-            Non_Free = sum(`% of NF Countries`)) +
+# Plot
+ggplot(data = Q2_courses,aes(x = reorder(`courses`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,0.7,0.1),
+                     limits = c(0,0.7))+
+  labs(title = "Course Distribution",
+       caption = "Q2: What Classes are you taking?",
+       x = "Course",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
 ```
 
-### Plot the historical distribution
+### Teaching Modality
 ```{r}
-plot_q1 <- q1_FiW_his_por %>%
-  ggplot() +
-  geom_line(mapping = aes(x=Year, y= `% of F Countries`, color = "% of F Countries"),
-            size = 0.7) +
-  geom_point(aes(x = 2020, y = 0.4205128, color = "% of F Countries"), size = 2) +
-  geom_line(mapping = aes(x=Year, y= `% of PF Countries`, color = "% of PF Countries"), 
-            size = 0.7) + 
-  geom_point(aes(x = 2020, y = 0.3025641, color = "% of PF Countries"), size = 2) + 
-  geom_line(mapping = aes(x=Year, y= `% of NF Countries`, color = "% of NF Countries"),
-            size = 0.7) +
-  geom_point(aes(x = 2020, y = 0.2769231, color = "% of NF Countries"), size = 2) +
-  scale_x_continuous(breaks = c(1995,2000,2005,2010,2015,2020),
-                     limits = c(1993,2022)) +
-  scale_y_continuous(breaks = c(0.2,0.3,0.4,0.5),
-                     limits = c(0.2,0.5))+
-  labs(title = "Distribution of Freedom in the World",
-       subtitle = "Year 1995 to 2020", caption = 
-      "Source: Freedom House.(2021).Country and Territory Ratings and Statues, 1973-2021",
-    x = "Year",
-    y = "Share of Global Distribution") +
-  scale_color_brewer(
-    name = "Freedom Status",
-    labels = c("Free", "Not Free", "Partially Free"),
-    palette= "Dark2") +
-  theme_light() +
-  theme(plot.title = element_text(size = 15, face = "bold"),
-        plot.caption = element_text(face = "italic", hjust = 0),
-        panel.grid.minor = element_blank()
-  )  
-plot_q1 +
-  annotate(geom = "label", x = 1995, y = 0.385,
-  label = "0.3979", color = "#1B9E77", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 1995, y = 0.338,
-  label = "0.3246", color = "#7570B3", fill = NA, fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 1995, y = 0.262,
-  label = "0.2775", color = "#D95F02", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2020.2, y = 0.405,
-  label = "0.4205", color = "#1B9E77", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2021, y = 0.326,
-  label = "0.3026", color = "#7570B3", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2021, y = 0.257,
-  label = "0.2769", color = "#D95F02", fill = NA, fontface = "bold", label.size = NA) 
-```
-\newpage
+# Summarize Teaching Nodality Data
+colnames(Fall_2021)[4] <- "format" # Rename
 
-## Q2.b
 
-### Read by country dataset
-```{r, warning=FALSE}
-# Read the by country FiW data 
-FiW_cty <- read_excel("Qb_Country Rating, Statuses_Clean.xlsx")
-# Changes made to the original dataset:
-# 1. Only keeps information from 1995 to 2020
-# 2. Delete the first row "Survey Editions",
-# 3. Unmerge row " Year(s) Under Review", Delete all Status column, 
-# add year information to each index being evaluated instead (both PR and CL)
-str(FiW_cty)
+Q3_format <- Fall_2021 %>%
+  drop_na(`format`) %>%
+  group_by(`format`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-8)) %>%
+  arrange(desc(percentage))
+# Rename
+Q3_format$`format` <- c("online",
+                        "in person")
+
+# Plot
+ggplot(data = Q3_format,aes(x = reorder(`format`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,0.8,0.1),
+                     limits = c(0,0.8))+
+  labs(title = "Teaching Modality",
+       caption = "Q3: Is this class on campus(in person)?",
+       x = "Format",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
 ```
 
-### Cleaning data to get FiW Index
-```{r, warning=FALSE}
-# Convert each column to numeric form except the country column
-FiW_cty <- FiW_cty %>%
-  mutate_at(c(2:53),as.numeric)
+### Instruction Difficulty Level
+```{r}
+# Summarize Teaching foramt Data
+colnames(Fall_2021)[5] <- "difficulty" # Rename
 
-# Create new columns to calculate the average of PR and CL for each country in each year
-# Use Rollmean to calculate moving average of the adjacent two columns for each row
-FiW_av <- data.frame(t(apply(FiW_cty[, c(2:53)],# start from the 2nd column,i.e.Year 1995
-                             1, rollmean, 2))) 
-# Finalize the average FiW value for each country-year data
-FiW_av <- FiW_av[, c(TRUE,FALSE)] 
-# Filter Even columns since those columns calculate the mean of 
-# CL of previous year and PR of this year
 
-# Combine the each country-year FiW value data into the original dataset and Clean
-FiW_cty<-cbind(FiW_cty, FiW_av)%>% #combine data of each country-year FiW value by column
-  select(-contains("...")) %>% #Delete original value columns
-  slice(-c(1)) # Delete the first row which specifies category of PR and CL
+Q4_difflev <- Fall_2021 %>%
+  drop_na(`difficulty`) %>%
+  group_by(`difficulty`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-2)) %>%
+  arrange(desc(percentage))
 
-# Change column names of the country-year FiW value dataset
-colnames(FiW_cty) <- c("Country",  # The first column indicates country name
-  c(1995:2020)) # all the other column names indicate the year the value belongs to
-str(FiW_cty) 
-# Get a cleaned dataset with FiW Index of each country in each year between 1995 and 2020.
-# To find the value of a specific country in a single year,searching the first column to
-# find the name of the country and then looking at column name to find corresponding year
+# Plot
+ggplot(data = Q4_difflev,aes(x = reorder(`difficulty`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,0.9,0.1),
+                     limits = c(0,0.9))+
+  labs(title = "Instruction Difficulty Level",
+       caption = "Q4: Instruction is at the right level for me in this class",
+       x = "Instruction difficulty level",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
 ```
 
-### Rescale the FiW Index
-```{r, warning = FALSE}
-# Construct re-scale Rule
-# Larger number indicates more democratic country
-maxs <- apply((FiW_cty)[,c(2:27)], # apply the function to every FiW Value column
-              2, # Calculation Range: Column
-              min, # Smaller original value indicate more democratic country
-              na.rm = TRUE) # do not apply the re-scale rule to NA values
-# Smaller number indicates less democratic country
-mins <- apply((FiW_cty)[,c(2:27)], # apply the function to every FiW Value column
-              2, # Calculation Range: Column
-              max, # Greater original index indicate less democratic country
-              na.rm = TRUE) # do not apply the re-scale rule to NA values
-# Re-scale so that the value range from 0 to 1, and larger numbers indicate more demoratic
-rescal<- as.data.frame(scale((FiW_cty)[, c(2:27)],center = mins, scale = maxs - mins))
+### Instruction Pace
+```{r}
+# Summarize Teaching foramt Data
+colnames(Fall_2021)[6] <- "pace" # Rename
 
-# Compare with summary (FiW-cty) to double check the correctness of rescale code
-summary(rescal) 
 
-# Combine the re-scaled dataset with original dataset
-FiW_cty <- cbind(select(FiW_cty, c(1)), # only keep the country column
-                 rescal) %>% # Combine re-scaled FiW Index
-  format(digits = 2) %>% # format data, only keeps 3 digits
-  mutate_at(c(2:27),as.numeric) # convert the format of all Index value into numeric
+Q5_pace <- Fall_2021 %>%
+  drop_na(`pace`) %>%
+  group_by(`pace`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-2)) %>%
+  arrange(desc(percentage))
+
+# Plot
+ggplot(data = Q5_pace ,aes(x = reorder(`pace`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,0.9,0.1),
+                     limits = c(0,0.9))+
+  labs(title = "Instruction Pace",
+       caption = "Q5: The pace of this class is okay for me",
+       x = "Instruction Pace",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
 ```
 
-### Create two dummy variables to represent Index change status for each country-year
-```{r, warning = FALSE}
-# Create a subset of FiW_cty without the only character column 'country'
-FiW_num <- FiW_cty %>%
-  select(-'Country')
-# Calculate moving difference for each country-year
-FiW_num <- as.matrix(FiW_num) # convert into matrix to use functions in package "Matrix" 
-# Store the difference data in a new dataframe called diff
-# Use rowDiffs to calculate differences between columns in each row
-diff <- data.frame(rowDiffs(FiW_num, rows = NULL, cols = NULL, 
-                 lag = 1L, # calculate i - (i-1)
-                 differences = 1L, useNames = NA))
-colnames(diff) <- c(1996:2020) #Replace column names with the year it belongs to
-# Convert back to matrix
-diff <- Reduce(cbind, diff)
-# Combine with the original daset and set column names
-# Keep the difference and country name column
-FiW_diff<-cbind(FiW_cty, diff)[, c(1, 28:52)]
-# Rename each column with the year it belongs to
-colnames(FiW_diff) <- c("Country",c(1996:2020))
 
-# Create Dummy variables to indicate index changing status
+### Help from Teachers
+```{r}
+# Clean data
+colnames(Fall_2021)[7] <- "thelp" # Rename
+Q6_thelp <- Fall_2021 %>%
+  drop_na(`thelp`)
 
-         i_2020 = ifelse(FiW_diff$`2020`>0, 1, 0),
-         d_2020 = ifelse(FiW_diff$`2020`<0, 1, 0)
-         )
-FiW_his_status <- FiW_his_status[, c(1, 27:76)] # Only keeps the dummy variables
+Q6_thelp <- Q6_thelp %>%
+  separate_rows(thelp, sep = ",") %>% # separate multiple choices by individual
+  group_by(thelp) %>%
+  summarise(count = n(),
+            percentage = count/(1163-1)) %>%
+  arrange(desc(percentage))
+Q6_thelp
 ```
 
-### Calculate the yearly share of FiW Index Change Status
-```{r, warning = FALSE}
-# CLeaning data
-FiW_his_status <- as.data.frame(t(FiW_his_status)) %>% # Convert row and column
-  row_to_names(row_number = 1) %>% # set the first row as column names
-  mutate_at(c(1:205), as.numeric) %>% # Convert column 1 to 205 into numeric format
-  mutate(perct = rowMeans(., na.rm = TRUE)) %>% # calculate mean of each row
-  select(perct, everything()) %>% # Move the percentage column as the 1st column
-  format(digits = 2)
+### Other Help from Teachers
+```{r}
+# Summarize Teaching format Data
+colnames(Fall_2021)[8] <- "othelp" # Rename
+```
 
-# Create dataset for increasing perct
-inc_pct <- FiW_his_status %>%
-  select(perct)
-inc_pct <- as.data.frame(t(inc_pct)) %>%
-  select(-contains("d"))
-colnames(inc_pct) <- c(1996:2020)
-rownames(inc_pct) <- c("increasing")
-inc_pct <- as.data.frame(t(inc_pct))
+### Welcome from Teachers
+```{r}
+# Summarize Data
+colnames(Fall_2021)[9] <- "welcome" # Rename
 
-# Create dataset for decreasing perct
-de_pct <- FiW_his_status %>%
-  select(perct)
-de_pct <- as.data.frame(t(de_pct)) %>%
-  select(-contains("i"))
-colnames(de_pct) <- c(1996:2020)
-rownames(de_pct) <- c("decreasing")
-de_pct <- as.data.frame(t(de_pct))
+Q8_welcome <- Fall_2021 %>%
+  drop_na(`welcome`) %>%
+  group_by(`welcome`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-1)) %>%
+  arrange(desc(percentage))
 
-# Combine data of increasing portion and decreasing portion of each year
-q2_status_por_plot <- cbind(inc_pct, de_pct) %>%
-  mutate(Year = c(1996:2020)) %>%
-  mutate_at(c(1:3), as.numeric)
-rownames(q2_status_por_plot) <- c(1:25)
+# Plot
+ggplot(data = Q8_welcome,aes(x = reorder(`welcome`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,1))+
+  labs(title = "Welcome Level from Teachers",
+       caption = "Q8: The teacher helps me to feel welcome in this class",
+       x = "Welcome level",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
+```
+
+### Respect from Teachers
+```{r}
+# Summarize Data
+colnames(Fall_2021)[10] <- "respect" # Rename
+
+Q9_respect <- Fall_2021 %>%
+  drop_na(`respect`) %>%
+  group_by(`respect`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-2)) %>%
+  arrange(desc(percentage))
+
+# Plot
+ggplot(data = Q9_respect,aes(x = reorder(`respect`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,1))+
+  labs(title = "Respect Level from Teachers",
+       caption = "Q9: The teacher of this class speaks to all students with respect.",
+       x = "Welcome level",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
+```
+
+### Student Support Services Noted by Teachers
+```{r}
+# Summarize Data
+colnames(Fall_2021)[11] <- "suppsv" # Rename
+
+Q12_suppsv <- Fall_2021 %>%
+  drop_na(`suppsv`) %>%
+  group_by(`suppsv`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-2)) %>%
+  arrange(desc(percentage))
+
+# Plot
+ggplot(data = Q12_suppsv,aes(x = reorder(`suppsv`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,0.8))+
+  labs(title = "Information of Student Support Services given by Teachers",
+       caption = "Q12: My teacher has given me information about student support services, such as tutoring, the wellness center, academic advising, and career planning.",
+       x = "Support service ",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
+```
+
+### Book Difficulty Level
+```{r}
+# Summarize Data
+colnames(Fall_2021)[12] <- "bookdiff" # Rename
+
+Q10_bookdiff <- Fall_2021 %>%
+  drop_na(`bookdiff`) %>%
+  group_by(`bookdiff`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-1)) %>%
+  arrange(desc(percentage))
+
+# Plot
+ggplot(data = Q10_bookdiff, aes(x = reorder(`bookdiff`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,1))+
+  labs(title = "Book Difficulty Level Fitness",
+       caption = "Q10: The books and materials for this class are at the right level for me.",
+       x = "Book Difficulty Level ",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
+```
+
+### Access to Course Materials
+```{r}
+# Summarize Data
+colnames(Fall_2021)[13] <- "access" # Rename
+
+Q11_access <- Fall_2021 %>%
+  drop_na(`access`) %>%
+  group_by(`access`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-3)) %>%
+  arrange(desc(percentage))
+
+# Plot
+ggplot(data = Q11_access, aes(x = reorder(`access`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,0.9,0.1),
+                     limits = c(0,0.9))+
+  labs(title = "Access to Books and Materials Needed for Classes",
+       caption = "Q11. I have access to the books and materials I need for this class.",
+       x = "Access to course material ",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
 ```  
 
-### Plot the yearly share of countries experience gains or losses in FiW Index
+### Recommending CCC Courses
 ```{r}
-plot_2 <- q2_status_por_plot %>%
-  ggplot() +
-  geom_line(mapping = aes(x= Year, y= `increasing`, color = "increasing"),size = 0.7) +
-  geom_point(aes(x = 2020, y = 0.041, color = "increasing"), size = 2) +
-  geom_line(mapping = aes(x= Year, y= `decreasing`, color = "decreasing"),size = 0.7) + 
-  geom_point(aes(x = 2020, y = 0.108, color = "decreasing"), size = 2) +
-  scale_x_continuous(breaks = c(1995,2000,2005,2010,2015,2020),
-                     limits = c(1993,2022)) +
-  scale_y_continuous(breaks = c(0,0.05,0.1,0.15,0.2,0.25),
-                     limits = c(0,0.25)) +
-  labs(title = "Share of Freedom Index Change Status \namong Global Countries",
-       sbutitle = "Year 1995 to 2020",caption =
-    "Source: Freedom House.(2021).Country and Territory Ratings and Statues, 1973-2021",
-    x = "Year",
-    y = "Share of Countries") +
-  scale_color_brewer(
-    name = "Freedom Index \nChange Status",
-    labels = c("Losses", "Gains"),
-    palette = "Dark2") +
-  theme_bw() +
-  theme(plot.title = element_text(size = 15, face = "bold"),
-        plot.caption = element_text(face = "italic", hjust = 0),
-        panel.grid.minor = element_blank()
-  )  
+# Summarize Data
+colnames(Fall_2021)[14] <- "recommendation" # Rename
 
-plot_2 +
-  annotate(geom = "label", x = 1996, y = 0.169,
-  label = "0.162", color = "#D95F02", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2007, y = 0.025,
-  label = "0.031", color = "#D95F02", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2002, y = 0.226,
-  label = "0.219", color = "#D95F02", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 1995, y = 0.075,
-  label = "0.068",color = "#1B9E77",  fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2020, y = 0.031,
-  label = "0.041", color = "#D95F02", fill = NA,fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2020, y = 0.119,
-  label = "0.108", color = "#1B9E77", fill = NA, fontface = "bold", label.size = NA) 
+Q13_recommendation <- Fall_2021 %>%
+  drop_na(`recommendation`) %>%
+  group_by(`recommendation`) %>%
+  summarise(count = n(),
+            percentage = count/(1163-1)) %>%
+  arrange(desc(percentage))
 
-```
-\newpage
-
-## Q2.c
-
-### Read the Country-year FiW data
-```{r}
-# Import FiW dataset with each country's Freedom Status
-FiW_st_0520 <- read_excel("Qc_Continent_Share_Data.xlsx", sheet = 1)
-
-# Changes made to the original dataset:
-# 1. Only keeps information in 2005 and 2020
-# 2. Delete the first row "Survey Editions",
-# 3. Unmerge row " Year(s) Under Review", only keeps Status column,
-# change the first row name to "Country Name"
-
-# Match country name with country code
-FiW_st_0520 <- as.matrix(FiW_st_0520)
-code <- as.data.frame(countrycode(FiW_st_0520[,1], 
-                                  origin = 'country.name', #Originally in Name Format
-                                  destination = 'un')) #change to UN M94 code
-# Check uncertain country codes
-
-# 1. For Czechoslovakia, we consider it to share the same code as Czechia in the
-# file provided by UN on the website
-# 2. For Kosovo, there is no country code in the UN file, therefore, we keep the 
-# resultget by R, i.e. NA
-# 3. For Yugoslavia, Serbia, Montenegro, since there is no value for Yugoslavia 
-# in both 2005 and 2020 ,we follow the UN file and just leave it as NA. 
-# Serbia and Montenegro are coded per the UN code
-# 4. For Micronesia, the code given in the UN file is 583, therefore, we manually
-# assign the code value in the R dataframe
-# 5. For Taiwan, it's part of China and there is no code in the UN file, while 
-# the political system is different, therefore, we remain leave it as NA
-
-# Combine the code data with the original dataset
-FiW_st_0520 <- cbind(FiW_st_0520, code)
-colnames(FiW_st_0520) <- c("country_name","2005","2020","M49 Code")
-FiW_st_0520[115,4] <- 583
+# Plot
+ggplot(data = Q13_recommendation, aes(x = reorder(`recommendation`,-`count`), y = `percentage`)) +
+  geom_col(fill = CCC) +
+  geom_text(aes(label=count), vjust = -0.5, face = "bold") +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,1))+
+  labs(title = "Recommendation of CCC Courses to Friends",
+       caption = "Q13: I would recommend this class to a friend",
+       x = "Recommendation to Friends",
+       y = "Percentage") +
+  theme_classic() +  
+  theme(plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
+        axis.text = element_text(size = 10, hjust = 0.5),
+        plot.caption = element_text(face = "italic",hjust = 0))
 ```
 
-### Combine with UN datafile by M94 Code
+### Reasons of Not Recommending CCC Courses
 ```{r}
-# Import the UN code data
-UNSD <- read_excel("Qc_UNSD — Methodology.xlsx")
-# Cleaning data
-UNSD <- UNSD %>%
-  select(`Region Code`, `Region Name`, 
-         `Country or Area`, 
-         `M49 Code`, 
-         `Least Developed Countries (LDC)`) %>%
-  drop_na(`Region Code`)
-str(UNSD)
-
-# Combine the FiW Index Status dataset and Regional code dataset by UN
-# Match each row with information in UNSD dataset according to M94 Code
-Cont_0520 <- left_join(FiW_st_0520, UNSD, by = "M49 Code") 
-# Remove irrelevant columns for plotting
-Cont_0520 <- Cont_0520 %>%
-  select(-`Country or Area`) %>%
-  select(`M49 Code`, everything()) %>%
-  select(`Region Code`, everything()) %>%
-  drop_na(`Region Code`)
-
-# 2005 Data
-d2005c <- Cont_0520 %>%
-  group_by(`Region Name`) %>%
-  summarize("F" = count(`2005` == "F"),
-            "PF" = count(`2005` == "PF"),
-            "NF" = count(`2005` == "NF"))%>%
-  melt(id.vars=c("Region Name")) %>%
-  arrange(`Region Name`) %>%
-  mutate_at(c(3), as.numeric)
-# 2020 Data
-d2020c <- Cont_0520 %>%
-  group_by(`Region Name`) %>%
-  summarize("F" = count(`2020` == "F"),
-            "PF" = count(`2020` == "PF"),
-            "NF" = count(`2020` == "NF")) %>%
-  melt(id.vars=c("Region Name")) %>%
-  arrange(`Region Name`) %>%
-  mutate_at(c(3), as.numeric)
-# sum of countries of each continent
-sum <- c(rep(sum(d2005c$value[d2005c$`Region Name`== "Africa"]),3),
-rep(sum(d2005c$value[d2005c$`Region Name`== "Americas"]),3),
-rep(sum(d2005c$value[d2005c$`Region Name`== "Asia"]),3),
-rep(sum(d2005c$value[d2005c$`Region Name`== "Europe"]),3),
-rep(sum(d2005c$value[d2005c$`Region Name`== "Oceania"]),3))
-
-# Combine dataset
-d2005c <- cbind(d2005c, sum)
-d2020c <- cbind(d2020c, sum)
-
-# Combine into the final dataset
-q3_cont_share <- rbind(d2005c, d2020c)
-q3_cont_share <- q3_cont_share %>%
-  mutate(Year = c(rep(2005,15),rep(2020,15))) # Create Year column
-# The amount of country increased to 43 in Europe in 2020
-q3_cont_share$sum[q3_cont_share$`Region Name`=="Europe" & q3_cont_share$Year == 2020]<-43
-# The amount of country increased to 54 in Africa in 2020
-q3_cont_share$sum[q3_cont_share$`Region Name`=="Africa" & q3_cont_share$Year == 2020]<-54
-
-q3_cont_share <- q3_cont_share %>%
-  mutate(pct = format((value/sum),digits = 2)) %>% # Calculate the percentage
-  arrange(Year,variable,desc(pct)) %>%
-  mutate(coding_order = c(c(1:5),rep(6,10),c(7:11),rep(12,10)))
-```  
-
-### Plot Distribution of Freedom Index Status by Continent
-```{r,, warning = FALSE}
-plot3 <- ggplot(data = q3_cont_share,aes(x= reorder(`Region Name`,+ coding_order),
-                                         group = Year)) + 
-  geom_bar(aes(y = value, fill= variable), position = "fill",
-           stat="identity") +
-  ggtitle("Distribution of Freedom Index Status by Continent",
-       subtitle = "Year 2005 and Year 2020")+
-  labs(caption =
-  "Source: Freedom House.(2021).Country and Territory Ratings and Statues, 1973-2021.
-Standard Country or Area Codes for Statistical Use (M49), Unitd Nations Statistics Division",
-       x = "Continent",
-       y = "Fredom Index Status Distribution") +
-  scale_y_continuous(labels = scales::percent) +
-  scale_fill_brewer(
-    name = "Freedom Index Status",
-    labels = c("Free", "Partially Free", "Not Free"),
-    palette = "Blues",
-    direction = -1) +
-  facet_grid(~Year) +
-  theme_classic() + 
-  theme(plot.title = element_text(size = 15, face = "bold"),
-        plot.caption = element_text(face = "italic", hjust = 0),
-        panel.grid.minor = element_blank())   
-plot3
-```
-\newpage
-
-## Q2.d
-
-### Create new dataset with Rescaled FiW Index and LDC Status
-```{r, warning=FALSE}
-# Match country name with country code, same step as in (c)
-FiW_q4 <- as.matrix(FiW_cty) # Use the dataset with re-scaled FiW Index
-code_q4 <- as.data.frame(countrycode(FiW_cty[,1],
-                                     origin = 'country.name',
-                                     destination = 'un'))
-FiW_q4 <- cbind(FiW_q4, code_q4) # FiW Index of each country-year with matched M94 code
-colnames(FiW_q4)[28] <- c("M49 Code") # Change column name
-FiW_cty[115,28] <- 583 # Assign the country code of Micronesia
-
-# Combine the FiW Index dataset and LDC classification dataset by UN
-# Match each row in FiW_cty with information in UNSD dataset based on M94 Code
-W_LDC_FiW <- left_join(FiW_q4, UNSD, by = "M49 Code") 
-W_LDC_FiW <-W_LDC_FiW %>%
-  select(-contains("country"), - contains("Region"),-`M49 Code`) %>%
-  select(`Least Developed Countries (LDC)`, everything())
-colnames(W_LDC_FiW)[1] <- "LDC" # Rename the LDC status column
-
-# Convert the LDC status column into numeric format
-W_LDC_FiW <- W_LDC_FiW %>%
-  mutate(`LDC` = ifelse(LDC == "x", 1,0)) # 1 represents LDC country
-W_LDC_FiW$LDC[is.na(W_LDC_FiW$LDC)] <- 0 # 0, i.e. NA represents non-LDC country
-# Convert all FiW Index Value Column into numeric format
-W_LDC_FiW <- W_LDC_FiW %>%
-  mutate_at(c(2:27), as.numeric) 
-# Subset data based on LDC status
-LDC <-  W_LDC_FiW %>% # Least Developing Countries
- filter(LDC == 1)
-Non_LDC <-  W_LDC_FiW %>% # Non- Least Developing Countries
- filter(LDC == 0)
-
-# Create the dataset of average FiW Index value by LDC status from 1995 to 2020
-q4_AVG <- as.data.frame(colMeans(W_LDC_FiW,na.rm = T)) # Total Average
-q4_AVG$LDC <- colMeans(LDC, na.rm = T) # Average of LDC countries
-q4_AVG$Non_LDC <- colMeans(Non_LDC, na.rm = T) # Average of Non-LDC countries
-colnames(q4_AVG)<- c("Total", "LDC", "Non_LDC") # Format the row names
-
-# Cleaning the Final dataset
-q4_AVG <- q4_AVG %>% 
-  format(digits = 3) %>% # Format the digits
-  slice(-c(1)) %>% # Remove LDC Status row
-  mutate(Year = c(1995:2020)) %>% # Create the Year Column
-  mutate_at(c(1:4), as.numeric) %>% # Format columns into numeric category
-  mutate(Diff = Non_LDC - LDC) # Calculate difference of Average FiW Index by LDC Status
-rownames(q4_AVG) <- c(1:26) # Format rownames
+# Summarize Data
+colnames(Fall_2021)[15] <- "norecommend" # Rename
+Q13b_norecommend <- Fall_2021 %>%
+  drop_na(norecommend)
+table(Q13b_norecommend$norecommend)
 ```
 
-### Plot the Average FiW Index by LDC Status from 1995 to 2020
+### Analysis of students who do not recommend CCC Coruses
 ```{r}
-# Draw the main plot
-plot_q4 <- q4_AVG %>%
-  ggplot() +
-  geom_line(mapping = aes(x=Year, y= `LDC`, # Plot trend line of LDC's average FiW Value
-                          color = "LDC"),size = 0.7) +
-  geom_point(aes(x = 2020, y = 0.389, # Plot point value of LDC's average FiW in 2020
-                 color = "LDC"), size = 2) +
-  geom_line(mapping = aes(x=Year, y= `Non_LDC`,# Plot trend line of Non-LDC
-                          color = "Non_LDC"), size = 0.7) + 
-  geom_point(aes(x = 2020, y = 0.648, # Plot point value of Non-LDC in 2020
-                 color = "Non_LDC"), size = 2) + 
-  geom_line(mapping = aes(x=Year, y= `Total`,# Plot trend line of All Countries
-                          color = "Total"), size = 0.7, linetype = "longdash") + 
-  geom_point(aes(x = 2020, y = 0.587, # Plot point value of All Countries in 2020
-                 color = "Total"), size = 2) +
-  scale_x_continuous(breaks = c(1995,2000,2005,2010,2015,2020),
-                     limits = c(1993,2022)) + # Format x  axis
-  scale_y_continuous(breaks = c(0.3,0.4,0.5,0.6,0.7),
-                     limits = c(0.3,0.7)) + # Format y axis
-  labs(title = "Average Freedom Index by countries' development Status",
-       subtitle = "Year 1995 to 2020",caption =
-  "Source: Freedom House.(2021).Country and Territory Ratings and Statues, 1973-2021.
-Standard Country or Area Codes for Statistical Use (M49), Unitd Nations Statistics Division",
-    x = "Year",
-    y = "Average Value of Re-scaled FiW Index") +
-  scale_color_manual(
-    name = "Country Category", # Customize legend's name
-    labels = c("Least-developed", "Non Least-developed","All"), # Customize labels' name
-    values= c("#1B9E77","#D95F02","#7570B3")) +
-  theme_bw() +
-  theme(plot.title = element_text(size = 14, face = "bold"),
-        plot.caption = element_text(face = "italic", hjust = 0),
-        panel.grid.minor = element_blank()
-  )  
-#  Add annotations of key values
-plot_q4 +
-  annotate(geom = "label",x = 1995, y = 0.372, # label Average FiW of LDC in 1995
-  label = "0.383", color = "#1B9E77", fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 1995, y = 0.604,  # label Average FiW of Non-LDC in 1995
-  label = "0.613", color = "#D95F02",fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 1995, y = 0.55,  # label Average FiW of All in 1995
-  label = "0.560", color = "#7570B3",fill =NA,  fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 2020, y = 0.373, # label Average FiW of LDC in 2020
-  label = "0.389", color = "#1B9E77", fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 2020, y = 0.63, # label Average FiW of Non-LDC in 2020
-  label = "0.648", color = "#D95F02",fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 2020, y = 0.571,  # label Average FiW of All in 2020
-  label = "0.587", color = "#7570B3", fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 2006, y = 0.464, # label highest Average FiW of LDC
-  label = "0.452", color = "#1B9E77", fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 2005, y = 0.699, # label highest Average FiW of Non-LDC
-  label = "0.687", color = "#D95F02",fill = NA, fontface = "bold", label.size =NA) +
-  annotate(geom = "label", x = 2005, y = 0.641,  # label highest Average FiW of All
-  label = "0.630", color = "#7570B3", fill = NA, fontface = "bold", label.size =NA)
+Q13b_norecommend <- Fall_2021 %>%
+  filter(recommendation == "no")
+as.matrix(colSums(is.na(Q13b_norecommend)))
+# User Language
+Q13b_norecommend %>%
+  group_by(`User Language`) %>%
+  summarise(count = n(),
+            percentage = count/57)
+# College
+Q13b_norecommend %>%
+  group_by(`college`) %>%
+  summarise(count = n(),
+            percentage = count/57) %>%
+  arrange(desc(percentage))
+# Courses
+Q13b_norecommend %>%
+  drop_na(`courses`) %>%
+  group_by(`courses`) %>%
+  summarise(count = n(),
+            percentage = count/57) %>%
+  arrange(desc(percentage))
+# Format
+Q13b_norecommend %>%
+  drop_na(`format`) %>%
+  group_by(`format`) %>%
+  summarise(count = n(),
+            percentage = count/54) %>%
+  arrange(desc(percentage))
+# Respect
+Q13b_norecommend %>%
+  drop_na(`respect`) %>%
+  group_by(`respect`) %>%
+  summarise(count = n(),
+            percentage = count/56) %>%
+  arrange(desc(percentage))
+```
 
-# Plot the difference of average FiW values between LDC countries and Non-lDC countries
-plot_q4_diff <- q4_AVG %>%
-  ggplot() +
-  geom_line(aes(x=Year, y= `Diff`,#Plot trend line of Differences of average FiW Value
-                color = "Diff"),
-            size = 0.7, linetype = "twodash") +
-  scale_x_continuous(breaks = c(1995,2000,2005,2010,2015,2020),
-                     limits = c(1995,2020)) + # Format x  axis
-  scale_y_continuous(breaks = c(0.2,0.25,0.3),
-                     limits = c(0.2,0.3)) + # Format y axis
-  labs(title = "Difference of Average Freedom Index among
-LDC and Non-LDC Countries(Year 1995 to 2020)",caption =
-  "Source: Freedom House.(2021).Country and Territory Ratings and Statues, 1973-2021.
-Standard Country or Area Codes for Statistical Use (M49), Unitd Nations Statistics Division",
-    x = "Year",
-    y = "Difference of Average FiW Value") +
-  scale_color_manual(name = "Legend",
-                     labels = c("Difference"), 
-                     values= c("#D73027")) + 
-  annotate(geom = "label",
-           x = 1995, y = 0.227, # label average FiW Difference in 1995
-           label = "0.23", color = "#D73027", fill = NA, 
-           fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2020, y = 0.266,  # label average FiW Difference in 2020
-           label = "0.259", color = "#D73027", fill = NA,
-           fontface = "bold", label.size = NA) +
-  annotate(geom = "label", x = 2006, y = 0.225,  # label the lowest average FiW Difference
-           label = "0.229", color = "#D73027", fill = NA,
-           fontface = "bold", label.size = NA) +
-  theme_bw() +
-  theme(plot.title = element_text(size = 14, face = "bold"),
-        plot.caption = element_text(face = "italic", hjust = 0),
-        panel.grid.minor = element_blank()
-  )
-plot_q4_diff
+#### Significant Differences Compared to Students Recommending CCC Courses
+```{r}
+# Difficulty
+Q13b_norecommend %>%
+  drop_na(`difficulty`) %>%
+  group_by(`difficulty`) %>%
+  summarise(count = n(),
+            percentage = count/56) %>%
+  arrange(desc(percentage))
+# Pace
+Q13b_norecommend %>%
+  drop_na(`pace`) %>%
+  group_by(`pace`) %>%
+  summarise(count = n(),
+            percentage = count/56) %>%
+  arrange(desc(percentage))
+# Help from teachers
+Q13b_norecommend %>%
+  drop_na(`thelp`) %>%
+  separate_rows(thelp, sep = ",") %>% 
+  group_by(`thelp`) %>%
+  summarise(count = n(), # Much lower rate of making class interesting
+            percentage = count/56) %>% # Lower rate of test-taking skills
+  arrange(desc(percentage))
+# Welcome
+Q13b_norecommend %>%
+  drop_na(`welcome`) %>%
+  group_by(`welcome`) %>%
+  summarise(count = n(),
+            percentage = count/56) %>%
+  arrange(desc(percentage))
+# Support Service
+Q13b_norecommend %>%
+  drop_na(`suppsv`) %>%
+  group_by(`suppsv`) %>%
+  summarise(count = n(),
+            percentage = count/56) %>%
+  arrange(desc(percentage))
+# Book Level
+Q13b_norecommend %>%
+  drop_na(`bookdiff`) %>%
+  group_by(`bookdiff`) %>%
+  summarise(count = n(),
+            percentage = count/56) %>%
+  arrange(desc(percentage))
+# Access
+Q13b_norecommend %>%
+  drop_na(`access`) %>%
+  group_by(`access`) %>%
+  summarise(count = n(),
+            percentage = count/55) %>%
+  arrange(desc(percentage))
 ```
